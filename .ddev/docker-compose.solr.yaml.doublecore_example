@@ -1,0 +1,29 @@
+version: '3.6'
+services:
+  solr:
+    container_name: ddev-${DDEV_SITENAME}-solr
+    image: solr:8
+    restart: "no"
+    ports:
+      - 8983
+    labels:
+      com.ddev.site-name: ${DDEV_SITENAME}
+      com.ddev.approot: $DDEV_APPROOT
+    environment:
+      - VIRTUAL_HOST=$DDEV_HOSTNAME
+      - HTTP_EXPOSE=8983:8983
+    volumes:
+      - solr:/opt/solr
+      - .:/mnt/ddev_config
+      - ./solr-core1:/solr-core1-conf
+      - ./solr-core2:/solr-core2-conf
+      - "./solr/solr-configupdate.sh:/docker-entrypoint-initdb.d/solr-configupdate.sh"
+    entrypoint: [ "sh", "-c", "docker-entrypoint.sh precreate-core core1 /solr-core1-conf; docker-entrypoint.sh precreate-core core2 /solr-core2-conf; exec solr -f" ]
+    external_links:
+      - "ddev-router:${DDEV_SITENAME}.${DDEV_TLD}"
+  web:
+    links:
+      - solr:solr
+
+volumes:
+  solr:

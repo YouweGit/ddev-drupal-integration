@@ -1,0 +1,53 @@
+#!/bin/bash
+## Description: Run initialization sequences in the web container
+## Usage: init
+## Example: "ddev init"
+source "$(dirname "$0")/common.sh"
+
+log "\e[36m--------- Running init ---------\e[39m"
+
+log "Go to the project root."
+cd "${PWD}" || exit 1;
+
+PROJECT_DIRECTORY=${PWD}
+
+declare -a drupal_sites=('default')
+## declare -a drupal_sites=('default' 'umami') separate the values for multisite with an space.
+
+for site in "${drupal_sites[@]}"
+do
+  log "Checking/creating folders inside sites/\e[36m$site\e[39m/files"
+  if [ ! -d "web/sites/$site/files" ]
+  then
+    cd "${PROJECT_DIRECTORY}" || exit
+    cd web/sites/$site
+    mkdir files
+    mkdir files/private
+    mkdir files/tmp
+  fi
+  log "Folders in files are checked/created"
+  log "Checking/creating symlinks to settings in sites/\e[36m$site\e[39m"
+  for filename  in ${PROJECT_DIRECTORY}/.ddev/local-settings/${site}/*
+  do
+    cleanfilename=$(basename -- ${filename})
+    cd "${PROJECT_DIRECTORY}" || exit
+    cd web/sites/$site
+    log "filename: \e[36m$cleanfilename\e[39m"
+    if [ -L ${cleanfilename} ] ; then
+       if [ -e ${cleanfilename} ] ; then
+          log "Symlink already exists: \e[36m$cleanfilename\e[39m"
+       else
+          ln -sf ../../../.ddev/local-settings/${site}/${cleanfilename}
+          log "Created symlink due to a broken link: \e[36m$cleanfilename\e[39m"
+       fi
+    elif [ -e ${cleanfilename} ] ; then
+      log "The file already exists but it is not a symlink: \e[36m$cleanfilename\e[39m"
+    else
+      ln -sf ../../../.ddev/local-settings/${site}/${cleanfilename}
+      log "Created symlink because it was missing: \e[36m$cleanfilename\e[39m"
+    fi
+  done
+  log "Symlinks in sites/* are checked/created"
+done
+
+log "\e[36m--------- Init completed ---------\e[39m"

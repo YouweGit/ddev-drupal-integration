@@ -1,0 +1,16 @@
+#!/bin/bash
+## Description: Run building sequences in the web container
+## Usage: build
+## Example: "ddev build"
+source "$(dirname "$0")/common.sh"
+
+log "\e[36m--------- Running build ---------\e[39m"
+
+log "Go to the project root."
+cd "${PWD}" || exit 1;
+
+log "Installing composer dependencies (with development dependencies)."
+composer install --no-interaction --no-progress --apcu-autoloader || exit 1;
+log "Composer packages are installed"
+
+log "\e[36m--------- Building completed ---------\e[39m"

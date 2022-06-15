@@ -1,0 +1,17 @@
+#!/bin/bash
+## Description: Remove downloaded and built resources
+## Usage: clear
+## Example: "ddev clear"
+source "$(dirname "$0")/common.sh"
+
+log "\e[36m--------- Cleaning downloaded and built resources ---------\e[39m"
+
+log "Go to the project root."
+cd "${PWD}" || exit 1;
+
+TODELETE="vendor web/core web/libraries web/modules/contrib web/themes/contrib"
+log "Deleting ${TODELETE} folders"
+rm -rf ${TODELETE} || exit 1;
+log "${TODELETE} folders are deleted"
+
+log "\e[36m--------- Finished cleaning downloaded and built resources ---------\e[39m"

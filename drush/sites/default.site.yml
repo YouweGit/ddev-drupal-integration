@@ -1,0 +1,11 @@
+prod:
+  uri: https://site1.com
+
+uat:
+  uri: https://acc.site1.com
+
+test:
+  uri: https://test.site1.com
+
+dev:
+  uri: https://site1.ddev.site

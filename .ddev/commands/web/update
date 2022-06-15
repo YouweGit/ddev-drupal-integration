@@ -1,0 +1,87 @@
+#!/bin/bash
+## Description: Run update sequences in the web container
+## Usage: update
+## Example: "ddev update"
+## Flags: [{"Name":"core","Shorthand":"c","Usage":"Updates drupal core"},{"Name":"module","Shorthand":"m","Usage":"Updates minor versions of modules"}]
+source "$(dirname "$0")/common.sh"
+# Process parameters, if something not allowed the script exists.
+params="$(getopt -o cm: -l core,module: --name "$0" -- "$@")" || exit
+eval set -- "$params"
+
+PARAMETER=
+MODULE=
+while true
+do
+    case $1 in
+        -c|--core)
+            PARAMETER="core"
+            shift
+            break
+            ;;
+        -m|--module)
+            PARAMETER="module"
+            MODULE="$2"
+            shift
+            break
+            ;;
+        --)
+            shift
+            break
+            ;;
+    esac
+done
+
+log "\e[36m--------- Updating packages & site ---------\e[39m"
+
+log "Go to the project root."
+cd "${PWD}" || exit 1;
+
+# This piece will always run.
+log "Installing composer dependencies (with development dependencies)."
+composer install --no-interaction --no-progress --apcu-autoloader || exit 1;
+log "Composer packages are installed"
+
+declare -a drupal_sites=('default')
+
+log "Running database and config updates"
+for site in "${drupal_sites[@]}"
+do
+  log "Running database and config updates on \e[36m$site\e[39m"
+  drush @$site updatedb --no-cache-clear -y
+  drush @$site cache:rebuild
+  # Drush cache clear.
+  drush @$site cache:clear drush
+  drush @$site config:import -y
+  drush @$site cache:rebuild
+done
+
+log "Database and configuration updates are finished"
+log "\e[36m--------- Packages and database is updated ---------\e[39m"
+
+if [[ "$PARAMETER" = "core" || "$PARAMETER" = "module" ]]; then
+    log "\e[36m--------- Updating $PARAMETER with dependencies ---------\e[39m"
+
+    if [[ "$PARAMETER" = "core" ]]; then
+      composer update drupal/core 'drupal/core-*' --with-all-dependencies
+    fi
+
+    if [[ "$PARAMETER" = "module" ]]; then
+      composer update 'drupal/$MODULE' --with-all-dependencies
+    fi
+
+    for site in "${drupal_sites[@]}"
+    do
+      log "Running database and config export on \e[36m$site\e[39m"
+      drush @$site updatedb --no-cache-clear -y
+      drush @$site cache:rebuild
+      drush @$site config:export -y
+    done
+    log "\e[36m--------- $PARAMETER and configuration updates are finished ---------\e[39m"
+fi
+
+log "\e[36m--------- Use this URL to log in ---------\e[39m"
+for site in "${drupal_sites[@]}"
+do
+  log "\e[36m $site:\e[39m"
+  drush @$site uli
+done
